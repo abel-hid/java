@@ -9,12 +9,13 @@ import java.math.BigDecimal;
 import static labs.pm.data.Rating.*;
 import labs.pm.data.Food;
 import java.time.LocalDate;
+import java.util.Locale;
 
 
 public class Shop {
     public static void main(String[] args) {
         
-        ProductManager pm = new ProductManager();
+        ProductManager pm = new ProductManager(Locale.UK);
         Product p1 = pm.createProduct(101, "Tea", BigDecimal.valueOf(1.99), NOT_RATED);
        
         pm.printProductReport();

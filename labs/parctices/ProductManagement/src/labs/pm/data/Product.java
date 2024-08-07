@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * @author abel-hid
  **/
-public sealed abstract class Product permits Food, Drink {
+public sealed abstract class Product implements Rateable<Product> permits Food, Drink {
     private int id;
     private String name;
     private BigDecimal price;
@@ -62,7 +62,7 @@ public sealed abstract class Product permits Food, Drink {
     // public Product() {
     //     this(0, "no name", BigDecimal.ZERO, Rating.NOT_RATED);
     // }
-    public abstract Product applyRating(Rating newRating);
+    // public abstract Product applyRating(Rating newRating);
 
     public LocalDate getBestBefore() {
         return LocalDate.now();
