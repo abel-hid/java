@@ -1,4 +1,5 @@
 package labs.pm.data;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
@@ -11,11 +12,13 @@ import java.util.ResourceBundle;
 import labs.pm.data.Product;
 import labs.pm.data.Review;
 import labs.pm.data.Rating;
+import java.util.Arrays;
 
 public class ProductManager {
     private Product product;
 
-    private Review review;
+    // private Review review;
+    private Review[] reviews = new Review[5];
     
     private ResourceBundle resources;
     private Locale locale;
@@ -47,14 +50,35 @@ public class ProductManager {
 
     public Product reviewProduct(Product product, Rating rating, String comments) 
     {
-        review = new Review(rating, comments);
-        this.product = product.applyRating(rating);
+        // review = new Review(rating, comments);
+        if(reviews[reviews.length - 1] != null)
+        {
+            // Review[] temp = new Review[reviews.length + 5];
+            // System.arraycopy(reviews, 0, temp, 0, reviews.length);
+            // reviews = temp;
+            reviews = Arrays.copyOf(reviews, reviews.length + 5);
+        }
+        int sum = 0;
+        boolean reviewed = false;
+        int i = 0;
+        while(!reviewed && i < reviews.length)
+        {
+            if(reviews[i] == null)
+            {
+                reviews[i] = new Review(rating, comments);
+                reviewed = true;
+            }
+            sum += reviews[i].rating().ordinal();
+            i++;
+        }
+        this.product = product.applyRating(Rateable.convert(Math.round((float)sum / i)));
         return this.product;
 
     }
 
     public void printProductReport() {
-        if (product == null) {
+        if (product == null)
+        {
             System.out.println("No product available.");
             return;
         }
@@ -79,13 +103,23 @@ public class ProductManager {
                 type));
     
         txt.append("\n");
-        if (review != null) {
+
+        for (Review review : reviews)
+        {
+            if (review == null) {
+                break;
+            }
             txt.append(MessageFormat.format(resources.getString("review"),
                     review.rating().getStars(), review.comments()));
-        } else {
-            txt.append(resources.getString("no.review"));
+            txt.append("\n");
+
         }
-        txt.append("\n");
+
+        if(reviews[0] == null)
+        {
+            txt.append(resources.getString("no.review"));
+            txt.append("\n");
+        }
         System.out.println(txt);
     }
     
