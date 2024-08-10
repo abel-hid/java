@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import labs.pm.data.Product;
 import labs.pm.data.Review;
@@ -117,9 +118,6 @@ public class ProductManager {
         }
         else
         {
-            // txt.append(reviews.stream()
-            // .map(r -> formatter.formatReview(r) + "\n")
-            // .collect(Collections.joining()));
             txt.append(reviews.stream()
             .map(r -> formatter.formatReview(r) + "\n")
             .reduce((s1, s2) -> s1 + s2)
@@ -136,6 +134,16 @@ public class ProductManager {
         .filter(filter)
         .forEach(p -> txt.append(formatter.formatProduct(p) + "\n"));
         System.out.println(txt);
+    }
+    public Map<String, String> getDiscounts()
+    {
+        return products.keySet().stream()
+        .collect(
+            Collectors.groupingBy(
+                p -> p.getRating().getStars(),
+                Collectors.collectingAndThen(
+                    Collectors.summarizingDouble(p -> p.getDiscount().doubleValue()),
+                    summary -> formatter.moneyFormat.format(summary.getAverage()))));
     }
    
     private static class ResourceFormatter
