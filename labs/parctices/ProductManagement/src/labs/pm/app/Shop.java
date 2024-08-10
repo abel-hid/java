@@ -20,6 +20,7 @@ public class Shop {
         pm.reviewProduct(101, FIVE_STAR, "Perfect tea");
         pm.reviewProduct(101, THREE_STAR, "Just add some lemon");
 
+
         pm.createProduct(102, "Coffee", BigDecimal.valueOf(1.99), NOT_RATED);
         pm.reviewProduct(102, THREE_STAR, "Coffee was ok");
         pm.reviewProduct(102, ONE_STAR, "Where is the milk?!");
@@ -42,13 +43,7 @@ public class Shop {
         pm.reviewProduct(106, THREE_STAR, "Better than other cookies");
         pm.reviewProduct(106, TWO_STAR, "Too bitter");
         pm.reviewProduct(106, ONE_STAR, "I don't like it");
-
-        Comparator<Product> ratingSorter = (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal();
-        Comparator<Product> priceSorter = (p1, p2) -> p2.getPrice().compareTo(p1.getPrice());
-
-        pm.printProducts(ratingSorter.thenComparing(priceSorter));
-        pm.printProducts(ratingSorter.thenComparing(priceSorter.reversed()));
-        pm.printProducts((p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal());
-        pm.printProducts((p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal());
+        pm.printProductReport(106);
+       pm.printProducts(p -> p.getPrice().floatValue() < 2, (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal());
     }
 }
