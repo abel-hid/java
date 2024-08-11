@@ -1,4 +1,4 @@
-package labs.pm.app;
+package labs.pm.data;
 
 public class ProductManagerException extends Exception 
 {

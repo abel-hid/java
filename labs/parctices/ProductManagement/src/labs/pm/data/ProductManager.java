@@ -12,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import labs.pm.app.ProductManagerException;
+import labs.pm.data.ProductManagerException;
 import labs.pm.data.Product;
 import labs.pm.data.Review;
 import labs.pm.data.Rating;
