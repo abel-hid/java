@@ -8,16 +8,25 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import labs.pm.app.ProductManagerException;
 import labs.pm.data.Product;
 import labs.pm.data.Review;
 import labs.pm.data.Rating;
 import labs.pm.data.Drink;
 import labs.pm.data.Food;
 import labs.pm.data.Rateable;
+import java.util.logging.Logger;
 public class ProductManager {
     private Map<Product ,List<Review>> products = new HashMap<>();
+
+    public static final Logger logger = Logger.getLogger(ProductManager.class.getName());
+
+
+
     private static Map<String, ResourceFormatter> formatters = 
     Map.of("en-GB", new ResourceFormatter(Locale.UK), 
             "en-US", new ResourceFormatter(Locale.US),
@@ -54,7 +63,7 @@ public class ProductManager {
         Product product = new Food(id, name, price, rating, bestBefore);
         products.putIfAbsent(product, new ArrayList<>());
         return product;
-    }
+    } 
 
     public Product createProduct(int id, String name, BigDecimal price, Rating rating) 
     {
@@ -63,18 +72,22 @@ public class ProductManager {
         return product;
     }
 
-    public Product findProduct(int id)
-    {
+    public Product findProduct(int id) throws ProductManagerException {
         return products.keySet()
         .stream()
         .filter(p -> p.getId() == id)
         .findFirst()
-        .orElse(null);
-    }
+        .orElseThrow(() -> new ProductManagerException("Product with id " + id + " not found"));
+    } 
 
-    public Product reviewProduct(int id, Rating rating, String comments) 
+    public Product reviewProduct(int id, Rating rating, String comments)
     {
-        return reviewProduct(findProduct(id), rating, comments);
+        try {
+            return reviewProduct(findProduct(id), rating, comments);
+        } catch (ProductManagerException e) {
+            logger.log(Level.INFO, e.getMessage());
+            return null;
+        }
     }
 
     public Product reviewProduct(Product product, Rating rating, String comments) 
@@ -94,16 +107,15 @@ public class ProductManager {
     }
     public void printProductReport(int id)
     {
-        printProductReport(findProduct(id));
+        try {
+            printProductReport(findProduct(id));
+        } catch (ProductManagerException e) {
+            logger.log(Level.INFO, e.getMessage());
+        }
     }
 
     public void printProductReport(Product product)
     {
-        if (product == null)
-        {
-            System.out.println("No product available.");
-            return;
-        }
         List<Review> reviews = products.get(product);
         Collections.sort(reviews);
         StringBuilder txt = new StringBuilder();

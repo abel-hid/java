@@ -13,6 +13,7 @@ public class Shop {
 
         ProductManager pm = new ProductManager("en-GB");
         pm.createProduct(101, "Tea", BigDecimal.valueOf(1.99), NOT_RATED);
+        pm.printProductReport(101);
         pm.reviewProduct(101, THREE_STAR, "Nice hot cup of tea");
         pm.reviewProduct(101, TWO_STAR, "Rather weak tea");
         pm.reviewProduct(101, FOUR_STAR, "Fine tea");
@@ -43,7 +44,7 @@ public class Shop {
         pm.reviewProduct(106, THREE_STAR, "Better than other cookies");
         pm.reviewProduct(106, TWO_STAR, "Too bitter");
         pm.reviewProduct(106, ONE_STAR, "I don't like it");
-         pm.printProductReport(106);
+
        pm.printProducts(p -> p.getPrice().floatValue() < 2, (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal());
        pm.getDiscounts().forEach((rating, discount) -> System.out.println(rating + "\t" + discount)); 
     }
