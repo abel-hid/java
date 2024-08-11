@@ -12,15 +12,16 @@ public class Shop {
     public static void main(String[] args) {
 
         ProductManager pm = new ProductManager("en-GB");
-        pm.parseProduct("D,101,Tea,1.99,0,2022-12-01");
-        pm.printProductReport(101);
-       pm.parseReview("101,4,Nice hot cup of tea");
-       pm.parseReview("101,2, Rather weak tea");
-       pm.parseReview("101,4, Fine tea");
-       pm.parseReview("101,4, Good tea");
-       pm.parseReview("101,5, Perfect tea");
-       pm.parseReview("101,3, Just add some lemon");
-       pm.printProductReport(101);
+        pm.parseProduct("D,101,Tea,1.99,0,2022-12-31");
+         pm.parseReview("101,4, Nice hot cup of tea");
+         pm.parseReview("101,2, Rath");
+         pm.parseReview("101,4, Fine tea");
+         pm.parseReview("101,4, Good tea");
+         pm.parseReview("101,5, Perfect tea");
+         pm.parseReview("101,3, Just add some lemon");
+         pm.printProductReport(101);
+//         pm.parseProduct("F,103,Cake,3.99,0,2022-12-31");
+        // pm.printProductReport(103);
 
 //        pm.reviewProduct(101, THREE_STAR, "Nice hot cup of tea");
 //        pm.reviewProduct(101, TWO_STAR, "Rather weak tea");
