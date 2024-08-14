@@ -1,7 +1,6 @@
-Tea, Price: £1.99, Rating: ★★★★☆, Best Before: 11/08/2024,  ●
-Review: ★★★★★	 Perfect tea
-Review: ★★★★☆	 Nice hot cup of tea
-Review: ★★★★☆	 Fine tea
-Review: ★★★★☆	 Good tea
-Review: ★★★☆☆	 Just add some lemon
-Review: ★★☆☆☆	 Rath
+Tea, Price: £1.99, Rating: ☆☆☆☆☆, Best Before: 14/08/2024,  ●
+Review: ★★★★★	This is the bset one I ever had
+Review: ★★★★☆	I like it
+Review: ★★★★☆	Good choice
+Review: ★★★☆☆	Could be better
+Review: ★★☆☆☆	Very small - expected more

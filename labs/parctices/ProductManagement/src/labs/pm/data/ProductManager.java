@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
@@ -24,24 +26,20 @@ public class ProductManager {
     private Map<Product, List<Review>> products = new HashMap<>();
     public static final Logger logger = Logger.getLogger(ProductManager.class.getName());
 
+    private MessageFormat productFormat;
     private ResourceBundle config = ResourceBundle.getBundle("labs.pm.data.config");
-    private MessageFormat reviewFormat = new MessageFormat(config.getString("review.data.format"));
-    // private MessageFormat productFormat = new MessageFormat(config.getString("product.data.format"));
-    private MessageFormat productFormat = new MessageFormat("{0},{1},{2},{3},{4},{5}");
+    private MessageFormat reviewFormat;
+    private Path reportsFolder;
+    private Path dataFolder;
+    private Path tempFolder;
 
-    
-    private Path reportsFolder = Path.of("/Users/abel-hid/Desktop/oracle/labs/reports");
-    private Path dataFolder = Path.of("/Users/abel-hid/Desktop/oracle/labs/data");
-    private Path tempFolder = Path.of("/Users/abel-hid/Desktop/oracle/labs/temp");
-    
-    
     private static final Map<String, ResourceFormatter> formatters = Map.of(
         "en-GB", new ResourceFormatter(Locale.UK),
         "en-US", new ResourceFormatter(Locale.US),
         "ru-RU", new ResourceFormatter(new Locale("ru", "RU")),
         "fr-FR", new ResourceFormatter(Locale.FRANCE),
         "zh-CN", new ResourceFormatter(Locale.CHINA)
-        );
+    );
 
     private ResourceFormatter formatter;
 
@@ -59,6 +57,53 @@ public class ProductManager {
 
     public ProductManager(String languageTag) {
         this.formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
+        loadResourceBundle();
+        initializeFields();
+       loadAllData();
+    }
+
+    private void loadResourceBundle() {
+        try {
+            config = ResourceBundle.getBundle("labs.pm.data.config");
+            System.out.println("Resource Bundle loaded successfully.");
+            // Debugging
+            System.out.println("Available keys: " + Arrays.toString(config.keySet().toArray()));
+        } catch (MissingResourceException e) {
+            logger.log(Level.SEVERE, "Resource bundle not found: labs.pm.data.config", e);
+        }
+    }
+    
+    
+    private void initializeFields() {
+        if (config != null) {
+            try {
+                reviewFormat = new MessageFormat(config.getString("review.data.format"));
+                productFormat = new MessageFormat(config.getString("product.data.format"));
+                reportsFolder = Path.of(config.getString("reports.folder"));
+                dataFolder = Path.of(config.getString("data.folder"));
+                tempFolder = Path.of(config.getString("temp.folder"));
+                System.out.println("Fields initialized successfully.");
+            } catch (MissingResourceException e) {
+                logger.log(Level.SEVERE, "Missing key in resource bundle", e);
+            }
+        } else {
+            logger.log(Level.SEVERE, "Configuration is not loaded. Fields cannot be initialized.");
+        }
+    }
+    private void loadAllData() {
+        try {
+            dataFolder = Path.of("/Users/abel-hid/Desktop/oracle/labs/data");
+            products = Files.list(dataFolder)
+                .filter(file -> file.getFileName().toString().startsWith("product"))
+                .map(file -> loadProduct(file))
+                .filter(product -> product != null)
+                .collect(Collectors.toMap(
+                    product -> product,
+                    product -> loadReviews(product)
+                ));
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error loading data: " + e.getMessage(), e);
+        }
     }
 
     public Product createProduct(int id, String name, BigDecimal price, Rating rating, LocalDate bestBefore) {
@@ -67,7 +112,8 @@ public class ProductManager {
         return product;
     }
 
-    public Product createProduct(int id, String name, BigDecimal price, Rating rating) {
+    public Product createProduct(int id, String name, BigDecimal price, Rating rating) 
+    {
         Product product = new Drink(id, name, price, rating);
         products.putIfAbsent(product, new ArrayList<>());
         return product;
@@ -90,21 +136,62 @@ public class ProductManager {
         }
     }
 
-    public void parseReview(String text) {
-
+    private Review parseReview(String text)
+    {
+        Review review = null;
         try {
             Object[] values = reviewFormat.parse(text);
-            int id = Integer.parseInt((String) values[0]);
-            Rating rating = Rateable.convert(Integer.parseInt((String) values[1]));
-            String comments = (String)values[2];
-            reviewProduct(id, rating, comments);
+            review = new Review(Rateable.convert(Integer.parseInt((String) values[0])), (String) values[1]);
             
         } catch (ParseException | NumberFormatException e)
         {
             logger.log(Level.WARNING, "Error parsing review: " + text, e.getMessage());
         }
+        return review;
     }
-    public void parseProduct(String text) {
+
+   
+
+    private Product loadProduct(Path file)
+    {
+        Product product = null;
+        dataFolder = Path.of(config.getString("data.folder"));
+        try 
+        {
+            product = parseProduct(Files.lines(dataFolder.resolve(file), Charset.forName("UTF-8"))
+            .findFirst()
+            .orElseThrow());
+        }
+        catch (IOException e)
+        {
+            logger.log(Level.WARNING, "Error loading product: " + e.getMessage());
+        }
+        return product;
+    }
+
+    private List<Review> loadReviews(Product product) {
+        List<Review> reviews = new ArrayList<>();
+        Path file = dataFolder.resolve(MessageFormat.format(config.getString("review.data.file"), product.getId()));
+        try {
+            if (Files.notExists(file)) {
+                System.out.println("Review file does not exist: " + file);
+            } else {
+                reviews = Files.lines(file, Charset.forName("UTF-8"))
+                    .map(text -> parseReview(text))
+                    .filter(review -> review != null)
+                    .collect(Collectors.toList());
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error loading reviews: " + e.getMessage(), e);
+        }
+        return reviews;
+    }
+    
+     
+    private Product parseProduct(String text)
+    {
+        Product product = null;
+        productFormat = new MessageFormat("{0},{1},{2},{3},{4},{5}");
         try {
             Object[] values = productFormat.parse(text);
             String type = (String) values[0];
@@ -114,15 +201,16 @@ public class ProductManager {
             Rating rating = Rateable.convert(Integer.parseInt((String) values[4]));
             switch (type) {
                 case "F":
-                    createProduct(id, name, price, rating, LocalDate.parse((String) values[5]));
+                    product = new Food(id, name, price, rating, LocalDate.parse((String) values[5]));
                     break;
                 case "D":
-                    createProduct(id, name, price, rating);
+                    product = new Drink(id, name, price, rating);
                     break;
             }
         } catch (ParseException | NumberFormatException | DateTimeException e) {
             logger.log(Level.WARNING, "Error parsing product: " + text, e.getMessage());
         }
+        return product;
     }
     
 
@@ -145,11 +233,11 @@ public class ProductManager {
         return product;
     }
     
-    public void printProductReport(int id) {
+    public void printProductReport(int id)
+    {
         try 
         {
             Product product = findProduct(id);
-            System.out.println(product);
             printProductReport(product);
         } catch (ProductManagerException e) {
             logger.log(Level.INFO, e.getMessage());
@@ -157,7 +245,9 @@ public class ProductManager {
             logger.log(Level.SEVERE, "Error printing product report" + e.getMessage(), e);
         }
     }
-    public void printProductReport(Product product) throws IOException {
+    
+    public void printProductReport(Product product) throws IOException 
+    {
         System.out.println(formatter.formatProduct(product));
         List<Review> reviews = products.getOrDefault(product, new ArrayList<>());
         Collections.sort(reviews);
@@ -205,7 +295,8 @@ public class ProductManager {
             );
     }
 
-    private static class ResourceFormatter {
+    private static class ResourceFormatter 
+    {
         private ResourceBundle resources;
         private Locale locale;
         private DateTimeFormatter dateFormat;
