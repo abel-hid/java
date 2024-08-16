@@ -1,17 +1,17 @@
 package labs.pm.data;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -21,6 +21,8 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static java.io.File.*;
 
 public class ProductManager {
     private Map<Product, List<Review>> products = new HashMap<>();
@@ -43,30 +45,34 @@ public class ProductManager {
 
     private ResourceFormatter formatter;
 
-    public void changeLocale(String languageTag) {
+    public void changeLocale(String languageTag) 
+    {
         formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
     }
 
-    public static Set<String> getSupportedLocales() {
+    public static Set<String> getSupportedLocales() 
+    {
         return formatters.keySet();
     }
 
-    public ProductManager(Locale locale) {
+    public ProductManager(Locale locale) 
+    {
         this.formatter = formatters.getOrDefault(locale.toLanguageTag(), formatters.get("en-GB"));
     }
 
-    public ProductManager(String languageTag) {
+    public ProductManager(String languageTag) 
+    {
         this.formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
         loadResourceBundle();
         initializeFields();
-       loadAllData();
+        loadAllData();
     }
 
-    private void loadResourceBundle() {
+    private void loadResourceBundle() 
+    {
         try {
             config = ResourceBundle.getBundle("labs.pm.data.config");
             System.out.println("Resource Bundle loaded successfully.");
-            // Debugging
             System.out.println("Available keys: " + Arrays.toString(config.keySet().toArray()));
         } catch (MissingResourceException e) {
             logger.log(Level.SEVERE, "Resource bundle not found: labs.pm.data.config", e);
@@ -74,7 +80,8 @@ public class ProductManager {
     }
     
     
-    private void initializeFields() {
+    private void initializeFields() 
+    {
         if (config != null) {
             try {
                 reviewFormat = new MessageFormat(config.getString("review.data.format"));
@@ -90,7 +97,8 @@ public class ProductManager {
             logger.log(Level.SEVERE, "Configuration is not loaded. Fields cannot be initialized.");
         }
     }
-    private void loadAllData() {
+    private void loadAllData() 
+    {
         try {
             dataFolder = Path.of("/Users/abel-hid/Desktop/oracle/labs/data");
             products = Files.list(dataFolder)
@@ -101,12 +109,69 @@ public class ProductManager {
                     product -> product,
                     product -> loadReviews(product)
                 ));
-        } catch (IOException e) {
+        } catch (IOException e) 
+        {
             logger.log(Level.SEVERE, "Error loading data: " + e.getMessage(), e);
         }
     }
+    @SuppressWarnings("unchecked")
+    public void restoreData() 
+    {
+        try 
+        {
+            Path tempFile = Files.list(tempFolder)
+                .filter(path -> path.getFileName().toString().endsWith("tmp"))
+                .findFirst()
+                .orElseThrow();
+            try (ObjectInputStream in = new ObjectInputStream(Files.newInputStream(tempFile, StandardOpenOption.DELETE_ON_CLOSE)))
+            {
+                products = (HashMap) in.readObject();
+                logger.log(Level.INFO, "Data restored successfully from " + tempFile);
+                
+            }
+        } 
+        catch (IOException | ClassNotFoundException e)
+        {
+            logger.log(Level.SEVERE, "Error restoring data: " + e.getMessage(), e);
+        }
+        finally
+        {
+            
+        }
+    }
+ 
+    public void dumpData() 
+    {
+        if (products.isEmpty()) 
+        {
+            logger.log(Level.INFO, "No data to dump.");
+        } 
+        else 
+        {
+            try 
+            {
+                if (Files.notExists(tempFolder)) 
+                {
+                    Files.createDirectory(tempFolder);
+                }
+                Path tempFile = tempFolder.resolve(MessageFormat.format(config.getString("temp.data.file"), Instant.now()));
+                try (ObjectOutput out = new ObjectOutputStream(Files.newOutputStream(tempFile, StandardOpenOption.CREATE)))
+                {
+                    out.writeObject(products);
+                    products = new HashMap<>();
+                    logger.log(Level.INFO, "Data dumped successfully to " + tempFile);
+                }
+            } 
+            catch (IOException e) 
+            {
+                logger.log(Level.SEVERE, "Error dumping data: " + e.getMessage(), e);
+            }
+        }
+    }
 
-    public Product createProduct(int id, String name, BigDecimal price, Rating rating, LocalDate bestBefore) {
+
+    public Product createProduct(int id, String name, BigDecimal price, Rating rating, LocalDate bestBefore) 
+    {
         Product product = new Food(id, name, price, rating, bestBefore);
         products.putIfAbsent(product, new ArrayList<>());
         return product;
@@ -119,7 +184,8 @@ public class ProductManager {
         return product;
     }
 
-    public Product findProduct(int id) throws ProductManagerException {
+    public Product findProduct(int id) throws ProductManagerException 
+    {
         return products.keySet()
             .stream()
             .filter(p -> p.getId() == id)
@@ -127,7 +193,8 @@ public class ProductManager {
             .orElseThrow(() -> new ProductManagerException("Product with id " + id + " not found"));
     }
 
-    public Product reviewProduct(int id, Rating rating, String comments) {
+    public Product reviewProduct(int id, Rating rating, String comments) 
+    {
         try {
             return reviewProduct(findProduct(id), rating, comments);
         } catch (ProductManagerException e) {
@@ -169,7 +236,8 @@ public class ProductManager {
         return product;
     }
 
-    private List<Review> loadReviews(Product product) {
+    private List<Review> loadReviews(Product product) 
+    {
         List<Review> reviews = new ArrayList<>();
         Path file = dataFolder.resolve(MessageFormat.format(config.getString("review.data.file"), product.getId()));
         try {
@@ -214,7 +282,8 @@ public class ProductManager {
     }
     
 
-    public Product reviewProduct(Product product, Rating rating, String comments) {
+    public Product reviewProduct(Product product, Rating rating, String comments) 
+    {
         List<Review> reviews = products.get(product);
         if (reviews == null) {
             reviews = new ArrayList<>();
@@ -273,7 +342,8 @@ public class ProductManager {
     
     
 
-    public void printProducts(Predicate<Product> filter, Comparator<Product> sorter) {
+    public void printProducts(Predicate<Product> filter, Comparator<Product> sorter) 
+    {
         StringBuilder txt = new StringBuilder();
         products.keySet().stream()
             .sorted(sorter)
@@ -282,7 +352,8 @@ public class ProductManager {
         System.out.println(txt);
     }
 
-    public Map<String, String> getDiscounts() {
+    public Map<String, String> getDiscounts() 
+    {
         return products.keySet().stream()
             .collect(
                 Collectors.groupingBy(
@@ -302,11 +373,15 @@ public class ProductManager {
         private DateTimeFormatter dateFormat;
         private NumberFormat moneyFormat;
     
-        private ResourceFormatter(Locale locale) {
+        private ResourceFormatter(Locale locale) 
+        {
             this.locale = locale;
-            try {
+            try 
+            {
                 resources = ResourceBundle.getBundle("labs.pm.data.resources", locale);
-            } catch (MissingResourceException e) {
+            } 
+            catch (MissingResourceException e) 
+            {
                 logger.log(Level.SEVERE, "Resource bundle not found for locale: " + locale, e);
                 resources = ResourceBundle.getBundle("labs.pm.data.resources", Locale.ENGLISH);
             }
@@ -314,7 +389,8 @@ public class ProductManager {
             moneyFormat = NumberFormat.getCurrencyInstance(locale);
         }
     
-        private String formatProduct(Product product) {
+        private String formatProduct(Product product) 
+        {
             String type = null;
             if (product instanceof Food)
                 type = getSafeString("food");
@@ -329,19 +405,25 @@ public class ProductManager {
                     type);
         }
     
-        private String formatReview(Review review) {
+        private String formatReview(Review review) 
+        {
             return MessageFormat.format(getSafeString("review"),
                     review.rating().getStars(), review.comments());
         }
     
-        private String getText(String key) {
+        private String getText(String key) 
+        {
             return getSafeString(key);
         }
     
-        private String getSafeString(String key) {
-            try {
+        private String getSafeString(String key) 
+        {
+            try 
+            {
                 return resources.getString(key);
-            } catch (MissingResourceException e) {
+            } 
+            catch (MissingResourceException e) 
+            {
                 logger.log(Level.WARNING, "Missing resource key: " + key, e);
                 return "Missing key: " + key;
             }
